@@ -43,15 +43,17 @@
                            <div class="carousel-inner">
                                @foreach ($images as $image)
                                    <div class="carousel-item {{ $loop->first ? 'active' : '' }}">
-                                       <img class="d-block w-100" style = "height: 400px;width:400px;"src="{{ $image['src'] }}" alt="First slide">
+                                       <iframe class="d-block w-100" style = "height: 600px;width:700px;border: none"src="{{ $image['src'] }}" alt="First slide"></iframe>
                                        <div class="carousel-caption">
                                            <form action="{{ url('images/' . $image['name']) }}" method="POST">
                                                {{ csrf_field() }}
                                                {{ method_field('DELETE') }}
+
                                                <button type="submit" class="btn btn-default">Remove</button>
                                            </form>
                                        </div>
                                    </div>
+
                                @endforeach
                            </div>
                            <a class="carousel-control-prev" href="#carouselExampleControls" role="button" data-slide="prev">
@@ -63,6 +65,7 @@
                                <span class="sr-only">Next</span>
                            </a>
                        </div>
+
                    @else
                        <p>Nothing found</p>
                    @endif
@@ -75,25 +78,49 @@
                            <div class="form-group">
                                <input type="file" name="image[]" id="image" multiple required>
                            </div>
+
                            <div class="form-group">
                                <button type="submit" class="btn btn-primary">Upload</button>
                            </div>
                        </form>
                        <div class="progress">
                             <div class="bar"></div >
-                            <div class="percent">
+                            <div class="percent" style="display:none">
+                          <progress max=”100” value=”0”></progress>
+
                                 <div class="mover"></div>
                             </div >
                         </div>
 
+
                         <div id="status"></div>
+                        <div id="results"></div>
+
                    </div>
                </div>
            </div>
        </div>
        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js" integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T" crossorigin="anonymous"></script>
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1.12.min.js"></script>
+
        <script>
+
+          AWS.config.region = 'ap-south-1'; // 1. Enter your region
+          AWS.config.credentials = new AWS.CognitoIdentityCredentials({
+              IdentityPoolId: 'ap-south-1:a5a0492d-1603-48ce-aad9-b9ec1449b626' // 2. Enter your identity pool
+          });
+          AWS.config.credentials.get(function(err) {
+              if (err) alert(err);
+              console.log(AWS.config.credentials);
+          });
+          var bucketName = 'laravels3upload'; // Enter your bucket name
+          var bucket = new AWS.S3({
+              params: {
+                  Bucket: bucketName
+              }
+          });
+
            $(document).ready(function(){
                 $("#awsImageUpload button").on("click",function(e){
                     var frm = $(this).closest("form");
@@ -102,19 +129,31 @@
                     }
                     e.preventDefault();
                     var link = frm.data("link");
+                    var fileChooser = document.getElementById('image');
+                    var file = fileChooser.files;
+                    var l =file.length;
+                     
                     var form_data = new FormData($(this).closest('form')[0]);
+
+                    for (var i = 0; i < l; i++) {
+                      uploadS3(file[i]);
+                    }
                     awsImageUpload(frm,form_data,link);
+
                 });
            });
+            var results = document.getElementById('results');
+           var d = new Date();
+           var n = d.getTime();
            function awsImageUpload(frm,form_data,link){
-             
+          
                 var bar = $('.progress .bar');
                 var percent = $('.progress .percent');
                 var status = $('#status');
+          
                 $.ajax({
                   xhr: function() {
                     var xhr = new window.XMLHttpRequest();
-
                     xhr.upload.addEventListener("progress", function(evt) {
                       if (evt.lengthComputable) {
                         var percentComplete = evt.loaded / evt.total;
@@ -124,10 +163,8 @@
                         if (percentComplete === 100) {
                             status.text("Upload Successfully");
                         }
-
                       }
                     }, false);
-
                     return xhr;
                   },
                   type: 'POST',
@@ -140,7 +177,54 @@
                     console.log(result);
                   }
                 });
+             }
+
+             function uploadS3(file) {
+              if (file) {
+                var objKey = 'images/' + n+file.name;
+                var params = {
+                Key: objKey,
+                Bucket: bucketName,
+                ContentType: file.type,
+                Body: file,
+                ACL: 'public-read'
+                };
+                bucket.putObject(params, function(err, data) {
+                if (err) {
+                    status.innerHTML = 'ERROR: ' + err;
+                } else {
+                  //  listObjs(); // this function will list all the files which has been uploaded
+                    //here you can also add your code to update your database(MySQL, firebase whatever you are using)
+                }
+            }).on('httpUploadProgress', function (progress) {
+                var uploaded = parseInt((progress.loaded * 100) / progress.total);
+                $(".percent").show();
+                
+                document.getElementsByTagName("progress")[0].setAttribute("value", uploaded);
+                status.text("Upload Successfully");
+                 
+                });
+                } else {
+                    status.innerHTML = 'Nothing to upload.';
+                }
+             }
+
+               function listObjs() {
+        var prefix = 'images';
+        bucket.listObjects({
+            Prefix: prefix
+        }, function(err, data) {
+            if (err) {
+                results.innerHTML = 'ERROR: ' + err;
+            } else {
+                var objKeys = "";
+                data.Contents.forEach(function(obj) {
+                    objKeys += obj.Key + "<br>";
+                });
+                results.innerHTML = objKeys;
             }
+        });
+    }
        </script>
    </body>
 </html>

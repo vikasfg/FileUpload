@@ -20,3 +20,7 @@ Route::get('/test', function () {
 });
 
 Route::resource('images', 'WelcomeController', ['only' => ['store', 'destroy']]);
+
+Route::get('/file-upload',function(){
+	return view('s3FileUpload');
+});

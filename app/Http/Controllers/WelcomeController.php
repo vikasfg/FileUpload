@@ -41,9 +41,13 @@ class WelcomeController extends Controller
 
           // $file = $request->file('image');
            $name = time() . $file->getClientOriginalName();
+
            $filePath = 'images/' . $name;
-           Storage::disk('s3')->put($filePath, file_get_contents($file));
-           $data['file_url'] = $filePath;
+           $url = 'https://s3.' . config('filesystems.disks.s3.region') . '.amazonaws.com/'.$filePath;
+
+           //Storage::disk('s3')->put($filePath, file_get_contents($file));
+           $data['file_path'] = $filePath;
+           $data['url'] = $url;
            $fileUploads->create($data);
          }
        }
@@ -54,6 +58,7 @@ class WelcomeController extends Controller
    public function destroy($image)
    {
        Storage::disk('s3')->delete('images/' . $image);
+       //$res = ManfCategoryMaster::where('file_url',$file_url)->delete();
  
        return back()->withSuccess('Image was deleted successfully');
    }
