@@ -30,17 +30,15 @@ class WelcomeController extends Controller
        // $this->validate($request, [
        //     'image' => 'required|image|max:2048'
        // ]);
-
-        $files = $request->file('image');
+        $files = $request->all();
         $data['lecture_name'] = 'L1';
 
-        if ($request->hasFile('image')) {
         	$fileUploads = new fileUploads;           
 
            foreach ($files as $file) {
 
           // $file = $request->file('image');
-           $name = time() . $file->getClientOriginalName();
+           $name = time() . $file;//->getClientOriginalName();
 
            $filePath = 'images/' . $name;
            $url = 'https://s3.' . config('filesystems.disks.s3.region') . '.amazonaws.com/'.$filePath;
@@ -50,7 +48,7 @@ class WelcomeController extends Controller
            $data['url'] = $url;
            $fileUploads->create($data);
          }
-       }
+       
  
        return "success";
    }

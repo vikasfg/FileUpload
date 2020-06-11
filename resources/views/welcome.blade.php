@@ -133,19 +133,20 @@
                     var file = fileChooser.files;
                     var l =file.length;
                      
-                    var form_data = new FormData($(this).closest('form')[0]);
-
+                    var form_data =  new FormData($(this).closest('form')[0]);
+                    var name =[];
                     for (var i = 0; i < l; i++) {
                       uploadS3(file[i]);
+                      name.push(file[i].name);
                     }
-                    awsImageUpload(frm,form_data,link);
-
+                    DBStore(frm,name,link);
+                     console.log(name);
                 });
            });
             var results = document.getElementById('results');
            var d = new Date();
            var n = d.getTime();
-           function awsImageUpload(frm,form_data,link){
+           function DBStore(frm,file_name,link){
           
                 var bar = $('.progress .bar');
                 var percent = $('.progress .percent');
@@ -167,14 +168,17 @@
                     }, false);
                     return xhr;
                   },
+                 
                   type: 'POST',
                     url:  link,
-                    data: form_data,
+                    data: {fn:file_name},
+                    dataType : 'json',
                     contentType: false,       // The content type used when sending data to the server.
                     cache: false,             // To unable request pages to be cached
                     processData:false,
                   success: function(result) {
-                    console.log(result);
+                    //alert(result);
+                    console.log(file_name);
                   }
                 });
              }
@@ -200,8 +204,8 @@
                 var uploaded = parseInt((progress.loaded * 100) / progress.total);
                 $(".percent").show();
                 
-                document.getElementsByTagName("progress")[0].setAttribute("value", uploaded);
-                status.text("Upload Successfully");
+                //document.getElementsByTagName("progress")[0].setAttribute("value", uploaded);
+                //status.text("Upload Successfully");
                  
                 });
                 } else {
