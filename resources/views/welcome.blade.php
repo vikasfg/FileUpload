@@ -140,7 +140,6 @@
                       name.push(file[i].name);
                     }
                     DBStore(frm,name,link);
-                     console.log(name);
                 });
            });
             var results = document.getElementById('results');
@@ -151,6 +150,7 @@
                 var bar = $('.progress .bar');
                 var percent = $('.progress .percent');
                 var status = $('#status');
+                     console.log(file_name);
           
                 $.ajax({
                   xhr: function() {
@@ -171,11 +171,11 @@
                  
                   type: 'POST',
                     url:  link,
-                    data: {fn:file_name},
+                    data: {data:JSON.stringify(file_name)},
                     dataType : 'json',
-                    contentType: false,       // The content type used when sending data to the server.
-                    cache: false,             // To unable request pages to be cached
-                    processData:false,
+                    // contentType: false,       // The content type used when sending data to the server.
+                    // cache: false,             // To unable request pages to be cached
+                    // processData:false,
                   success: function(result) {
                     //alert(result);
                     console.log(file_name);

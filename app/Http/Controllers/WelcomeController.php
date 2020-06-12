@@ -30,9 +30,10 @@ class WelcomeController extends Controller
        // $this->validate($request, [
        //     'image' => 'required|image|max:2048'
        // ]);
-        $files = $request->all();
-        $data['lecture_name'] = 'L1';
-
+        $filesData = $request->all();
+        
+         $files = json_decode($filesData['data']);
+         $data['lecture_name'] = 'L1';
         	$fileUploads = new fileUploads;           
 
            foreach ($files as $file) {
