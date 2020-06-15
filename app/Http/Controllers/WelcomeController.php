@@ -27,9 +27,7 @@ class WelcomeController extends Controller
  
    public function store(Request $request)
    {
-       // $this->validate($request, [
-       //     'image' => 'required|image|max:2048'
-       // ]);
+      
         $filesData = $request->all();
         
          $files = json_decode($filesData['data']);
@@ -51,7 +49,8 @@ class WelcomeController extends Controller
          }
        
  
-       return "success";
+       return back()->withSuccess('Image uploaded successfully');
+       
    }
  
    public function destroy($image)

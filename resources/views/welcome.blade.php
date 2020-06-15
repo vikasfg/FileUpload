@@ -14,6 +14,12 @@
            .progress .bar{
              background: green;
            }
+           .none{
+            display: none;
+           }
+           .progressBar{
+            background: green;
+           }
        </style>
    </head>
    <body>
@@ -78,25 +84,34 @@
                            <div class="form-group">
                                <input type="file" name="image[]" id="image" multiple required>
                            </div>
+                           <div class="imgItemCont">
+                             
+                           </div>
 
                            <div class="form-group">
                                <button type="submit" class="btn btn-primary">Upload</button>
                            </div>
                        </form>
-                       <div class="progress">
+                          
                             <div class="bar"></div >
                             <div class="percent" style="display:none">
-                          <progress max=”100” value=”0”></progress>
 
                                 <div class="mover"></div>
                             </div >
                         </div>
 
+                          <progress max=”100” value=”0”></progress>
 
                         <div id="status"></div>
                         <div id="results"></div>
 
                    </div>
+               </div>
+               <div class="imgPrtype none">
+                 <div class="imgName"></div>
+                 <div class="progressBar">
+                   
+                 </div>
                </div>
            </div>
        </div>
@@ -112,7 +127,7 @@
           });
           AWS.config.credentials.get(function(err) {
               if (err) alert(err);
-              console.log(AWS.config.credentials);
+              //console.log(AWS.config.credentials);
           });
           var bucketName = 'laravels3upload'; // Enter your bucket name
           var bucket = new AWS.S3({
@@ -132,42 +147,57 @@
                     var fileChooser = document.getElementById('image');
                     var file = fileChooser.files;
                     var l =file.length;
-                     
-                    var form_data =  new FormData($(this).closest('form')[0]);
+                     console.log(file);
+                    // var form_data =  new FormData($(this).closest('form')[0]);
                     var name =[];
+                     var loaded = [];
+                    var sizeTotal = 0;
                     for (var i = 0; i < l; i++) {
-                      uploadS3(file[i]);
                       name.push(file[i].name);
+                      loaded[file[i].name] = 0;
+                      sizeTotal += file[i].size;
                     }
-                    DBStore(frm,name,link);
+                    uploadS3(file,sizeTotal,loaded);
+                     // console.log('tot'+sizeTotal);
+                    DBStore(name,link);
+                });
+                $("#awsImageUpload #image").on("change",function(){
+                  var thisfile = $(this).get(0).files;
+                  var fileLength = thisfile.length;
+                  
+                  
+                  for(var i=0;i<fileLength;i++){
+                    var item = $(".imgPrtype").clone().removeClass("imgPrtype none").addClass("imgItem");
+                    item.find(".imgName").text(thisfile[i].name);
+                    item.appendTo(".imgItemCont");
+                  }
                 });
            });
             var results = document.getElementById('results');
            var d = new Date();
            var n = d.getTime();
-           function DBStore(frm,file_name,link){
+           function DBStore(file_name,link){
           
                 var bar = $('.progress .bar');
                 var percent = $('.progress .percent');
                 var status = $('#status');
-                     console.log(file_name);
           
                 $.ajax({
-                  xhr: function() {
-                    var xhr = new window.XMLHttpRequest();
-                    xhr.upload.addEventListener("progress", function(evt) {
-                      if (evt.lengthComputable) {
-                        var percentComplete = evt.loaded / evt.total;
-                        percentComplete = parseInt(percentComplete * 100);
-                        bar.width(percentComplete+"%");
-                        percent.text(percentComplete+"%");
-                        if (percentComplete === 100) {
-                            status.text("Upload Successfully");
-                        }
-                      }
-                    }, false);
-                    return xhr;
-                  },
+                  // xhr: function() {
+                  //   var xhr = new window.XMLHttpRequest();
+                  //   xhr.upload.addEventListener("progress", function(evt) {
+                  //     if (evt.lengthComputable) {
+                  //       var percentComplete = evt.loaded / evt.total;
+                  //       percentComplete = parseInt(percentComplete * 100);
+                  //       bar.width(percentComplete+"%");
+                  //       percent.text(percentComplete+"%");
+                  //       if (percentComplete === 100) {
+                  //           status.text("Upload Successfully");
+                  //       }
+                  //     }
+                  //   }, false);
+                  //   return xhr;
+                  // },
                  
                   type: 'POST',
                     url:  link,
@@ -178,57 +208,74 @@
                     // processData:false,
                   success: function(result) {
                     //alert(result);
-                    console.log(file_name);
+                   // console.log(file_name);
                   }
                 });
              }
 
-             function uploadS3(file) {
-              if (file) {
-                var objKey = 'images/' + n+file.name;
-                var params = {
-                Key: objKey,
-                Bucket: bucketName,
-                ContentType: file.type,
-                Body: file,
-                ACL: 'public-read'
-                };
-                bucket.putObject(params, function(err, data) {
-                if (err) {
-                    status.innerHTML = 'ERROR: ' + err;
-                } else {
-                  //  listObjs(); // this function will list all the files which has been uploaded
-                    //here you can also add your code to update your database(MySQL, firebase whatever you are using)
-                }
-            }).on('httpUploadProgress', function (progress) {
-                var uploaded = parseInt((progress.loaded * 100) / progress.total);
-                $(".percent").show();
-                
-                //document.getElementsByTagName("progress")[0].setAttribute("value", uploaded);
-                //status.text("Upload Successfully");
-                 
-                });
-                } else {
-                    status.innerHTML = 'Nothing to upload.';
-                }
-             }
+             function uploadS3(file,sizeTotal,loaded) {
+              var loadedTotal = 0;
 
-               function listObjs() {
-        var prefix = 'images';
-        bucket.listObjects({
-            Prefix: prefix
-        }, function(err, data) {
-            if (err) {
-                results.innerHTML = 'ERROR: ' + err;
-            } else {
-                var objKeys = "";
-                data.Contents.forEach(function(obj) {
-                    objKeys += obj.Key + "<br>";
-                });
-                results.innerHTML = objKeys;
-            }
-        });
-    }
+              for (let i = 0, filesLen = file.length; i < filesLen; i++) {
+
+                var fn = file[i].name;
+               
+                if (file) {
+                  var objKey = 'images/' + n+file[i].name;
+                  var params = {
+                    Key: objKey,
+                    Bucket: bucketName,
+                    ContentType: file[i].type,
+                    Body: file[i],
+                    ACL: 'public-read'
+                  };
+                  bucket.putObject(params, function(err, data) {
+                    if (err) {
+                        status.innerHTML = 'ERROR: ' + err;
+                    } else {
+                      //  listObjs(); // this function will list all the files which has been uploaded
+                        //here you can also add your code to update your database(MySQL, firebase whatever you are using)
+                    }
+                  }).on('httpUploadProgress', function (progress) {
+
+                  loaded[this.params.key] = progress.loaded;
+                  var loadedTotal =0;
+                  for (var j in loaded) {
+                      loadedTotal = loaded[j];
+                  }
+                  
+                  var uploaded = Math.round(loadedTotal / progress.total * 100);
+    
+                  document.getElementsByTagName("progress")[0].setAttribute("value", uploaded);
+                  results.innerHTML = uploaded;
+                  console.log(loadedTotal+'up'+uploaded+'loaded'+progress.loaded);
+                  $(".imgItemCont .imgItem:eq("+i+") .progressBar").text(uploaded);
+                  //status.text("Upload Successfully");
+                   
+                  });
+                  }
+                  else {
+                      status.innerHTML = 'Nothing to upload.';
+                  }
+                } 
+              }
+
+              function listObjs() {
+                  var prefix = 'images';
+                  bucket.listObjects({
+                      Prefix: prefix
+                  }, function(err, data) {
+                      if (err) {
+                          results.innerHTML = 'ERROR: ' + err;
+                      } else {
+                          var objKeys = "";
+                          data.Contents.forEach(function(obj) {
+                              objKeys += obj.Key + "<br>";
+                          });
+                          results.innerHTML = objKeys;
+                      }
+                  });
+              }
        </script>
    </body>
 </html>
